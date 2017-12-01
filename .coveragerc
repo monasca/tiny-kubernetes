@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = tiny_kubernetes
+
+[report]
+ignore_errors = True
