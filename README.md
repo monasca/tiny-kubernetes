@@ -61,6 +61,23 @@ using dot accessors (courtesy of [DotMap][2]). As `.items()` is a reserved name
 in dictionaries, it needs to be accessed more traditionally, but most other
 member names can use the shortened syntax.
 
+The endpoint is formatted using [`str.format`][3] with the remaining positional
+arguments. All keyword arguments are passed through to requests's
+[`Session.request`][4], so you can include a body with `json={...}` or URL
+parameters with `params={...}`.
+
+A special `json_patch` method exists to help perform patches. It works around
+a few potential requests bugs automatically. For example, it can be used to
+append labels to a resource:
+
+```python
+client.json_patch([
+  'op': 'add',
+  'path': '/metadata/labels/foo',
+  'value': 'bar'
+], '/api/v1/namespaces/{}/pods/{}', 'default', 'some-pod')
+```
+
 Notes
 -----
 
@@ -73,3 +90,5 @@ Notes
 [0]: http://docs.python-requests.org/en/master/
 [1]: https://github.com/kubernetes-incubator/client-python
 [2]: https://github.com/drgrib/dotmap
+[3]: https://docs.python.org/2/library/stdtypes.html#str.format
+[4]: http://docs.python-requests.org/en/master/api/#requests.Session.request
