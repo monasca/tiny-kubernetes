@@ -197,3 +197,20 @@ class KubernetesAPIClient(object):
                                      'PATCH, failing!')
 
         return resp
+
+    def strategic_merge_patch(self, path, *args, **kwargs):
+        headers = kwargs.pop('headers', None)
+        if headers:
+            headers = headers.copy()
+        else:
+            headers = {}
+
+        headers['Content-Type'] = 'application/strategic-merge-patch+json'
+        resp = self.patch(path,
+                          headers=headers,
+                          allow_redirects=False,
+                          *args, **kwargs)
+        if 300 <= resp.status_code < 400:
+            raise KubernetesAPIError('Encountered a redirect while sending a '
+                                     'PATCH, failing!')
+        return resp
