@@ -3,3 +3,7 @@
 # process, which may cause wedges in the gate later.
 
 pbr>=2.0 # Apache-2.0
+requests>=2.14.2  # Apache-2.0
+dotmap>=1.2.20
+dpath>=1.4.0
+PyYAML>=3.10  # MIT
