@@ -14,9 +14,9 @@
 
 import pbr.version
 
-from tiny_kubernetes import (KubernetesAPIClient,
-                             KubernetesAPIResponse,
-                             KubernetesAPIError)
+from tiny_kubernetes.kubernetes import (KubernetesAPIClient,
+                                        KubernetesAPIResponse,
+                                        KubernetesAPIError)
 
 
 __version__ = pbr.version.VersionInfo(
