@@ -71,11 +71,11 @@ a few potential requests bugs automatically. For example, it can be used to
 append labels to a resource:
 
 ```python
-client.json_patch([
+client.json_patch([{
   'op': 'add',
   'path': '/metadata/labels/foo',
   'value': 'bar'
-], '/api/v1/namespaces/{}/pods/{}', 'default', 'some-pod')
+}], '/api/v1/namespaces/{}/pods/{}', 'default', 'some-pod')
 ```
 
 Notes
