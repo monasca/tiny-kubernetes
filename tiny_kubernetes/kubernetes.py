@@ -42,31 +42,31 @@ def load_current_kube_credentials():
     with open(os.path.expanduser(KUBE_CONFIG_PATH), 'r') as f:
         config = DotMap(yaml.safe_load(f))
 
-        ctx_name = config['current-context']
-        ctx = next(c for c in config.contexts if c.name == ctx_name)
-        cluster = next(c for c in config.clusters if c.name == ctx.context.cluster).cluster
+    ctx_name = config['current-context']
+    ctx = next(c for c in config.contexts if c.name == ctx_name)
+    cluster = next(c for c in config.clusters if c.name == ctx.context.cluster).cluster
 
-        if 'certificate-authority' in cluster:
-            ca_cert = cluster['certificate-authority']
-        elif 'certificate-authority-data' in cluster:
-            temp_handle, temp_path = tempfile.mkstemp('k8s-cert', text=True)
-            with os.fdopen(temp_handle, 'w') as f:
-                f.write(base64.b64decode(cluster['certificate-authority-data']))
-                f.close()
+    if 'certificate-authority' in cluster:
+        ca_cert = cluster['certificate-authority']
+    elif 'certificate-authority-data' in cluster:
+        temp_handle, temp_path = tempfile.mkstemp('k8s-cert', text=True)
+        with os.fdopen(temp_handle, 'wb') as fout:
+            fout.write(base64.b64decode(cluster['certificate-authority-data']))
+            fout.close()
 
-            TEMP_CERTS.append(temp_path)
-            ca_cert = temp_path
+        TEMP_CERTS.append(temp_path)
+        ca_cert = temp_path
+    else:
+        ca_cert = None
+
+    if ctx.context.user:
+        user = next(u for u in config.users if u.name == ctx.context.user).user
+        if 'token' in user:
+            return cluster.server, ca_cert, None, user['token']
         else:
-            ca_cert = None
-
-        if ctx.context.user:
-            user = next(u for u in config.users if u.name == ctx.context.user).user
-            if 'token' in user:
-                return cluster.server, ca_cert, None, user['token']
-            else:
-                return cluster.server, ca_cert, (user['client-certificate'], user['client-key']), None
-        else:
-            return cluster.server, ca_cert, None
+            return cluster.server, ca_cert, (user['client-certificate'], user['client-key']), None
+    else:
+        return cluster.server, ca_cert, None
 
 
 def cleanup_temp_certs():
