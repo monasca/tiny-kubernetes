@@ -147,6 +147,7 @@ class KubernetesAPIClient(object):
 
     def request(self, method, path, *args, **kwargs):
         raise_for_status = kwargs.pop('raise_for_status', True)
+        decode = kwargs.pop('decode', True)
         timeout = kwargs.pop('timeout', DEFAULT_TIMEOUT)
 
         if args:
@@ -162,7 +163,10 @@ class KubernetesAPIClient(object):
         if raise_for_status:
             res.raise_for_status()
 
-        return KubernetesAPIResponse(res, res.json())
+        if decode:
+            return KubernetesAPIResponse(res, res.json())
+        else:
+            return KubernetesAPIResponse(res)
 
     def get(self, path, *args, **kwargs):
         kwargs.setdefault('allow_redirects', True)
