@@ -16,7 +16,9 @@ import atexit
 import base64
 import json
 import os
+import ssl
 import tempfile
+import urllib.parse
 
 import dpath.util
 import requests
@@ -66,12 +68,13 @@ def load_current_kube_credentials():
         else:
             return cluster.server, ca_cert, (user['client-certificate'], user['client-key']), None
     else:
-        return cluster.server, ca_cert, None
+        return cluster.server, ca_cert, None, None
 
 
 def cleanup_temp_certs():
     for cert in TEMP_CERTS:
         os.unlink(cert)
+
 
 atexit.register(cleanup_temp_certs)
 
@@ -201,3 +204,44 @@ class KubernetesAPIClient(object):
                                      'PATCH, failing!')
 
         return resp
+
+    def websocket(self, path, *args, **kwargs):
+        try:
+            import websockets
+
+            if args:
+                path = path.format(*args)
+
+            slash = '' if path.startswith('/') else '/'
+
+            api_parts = list(urllib.parse.urlparse(self.api_url))
+            if api_parts[0] == 'http':
+                api_parts[0] = 'ws'
+            else:
+                api_parts[0] = 'wss'
+            ws_api_url = urllib.parse.urlunparse(api_parts)
+            ws_uri = '{}{}{}'.format(ws_api_url, slash, path)
+
+            ssl_context = ssl.create_default_context()
+            if self.session.verify:
+                ssl_context.load_verify_locations(cafile=self.session.verify)
+                ssl_context.load_default_certs()
+            else:
+                ssl_context.load_default_certs()
+
+            if 'Authorization' in self.session.headers:
+                headers = {
+                    'Authorization': self.session.headers['Authorization']
+                }
+
+                if 'headers' in kwargs:
+                    headers.update(kwargs['headers'])
+
+                return websockets.connect(
+                    ws_uri, ssl=ssl_context, extra_headers=headers)
+            elif self.session.cert:
+                ssl_context.load_cert_chain(self.session.cert)
+                return websockets.connect(ws_uri, ssl=ssl_context)
+        except ImportError:
+            raise KubernetesAPIError('websockets package is required to use '
+                                     'KubernetesAPIClient.websocket()')
