@@ -8,7 +8,8 @@ Features
 --------
 
  * Automatic authentication (`$KUBECONFIG`)
- * Simplified response traversal (`never['do']['this']['again']`)
+ * Simplified response traversal (`never['do']['this']['again']`) thanks to
+   [DotMap][2]
  * Sane exceptions
  * No crazy complex client-side APIs to deal with
 
@@ -23,23 +24,8 @@ functionality with minimal overhead.
 Installation
 ------------
 
-To manually install, run:
 ```
-pip install git+https://github.com/monasca/tiny-kubernetes.git
-```
-
-To depend on tiny-kubernetes from `requirements.txt`, add the following:
-
-```
--e git+https://github.com/monasca/tiny-kubernetes.git#egg=tiny-kubernetes
-```
-
-(note: requires pip 7.0 or greater)
-
-You can depend on a specific commit too:
-
-```
--e git+https://github.com/monasca/tiny-kubernetes.git@[GIT SHA]#egg=tiny-kubernetes
+pip install tiny-kubernetes
 ```
 
 Usage
