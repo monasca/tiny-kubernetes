@@ -38,6 +38,17 @@ DEFAULT_TIMEOUT = 10
 TEMP_CERTS = []
 
 
+def write_temp_cert(encoded_data):
+    temp_handle, temp_path = tempfile.mkstemp('k8s-cert', text=True)
+    with os.fdopen(temp_handle, 'wb') as fout:
+            fout.write(base64.b64decode(encoded_data))
+            fout.close()
+
+    TEMP_CERTS.append(temp_path)
+
+    return temp_path
+
+
 def load_current_kube_credentials():
     with open(os.path.expanduser(KUBE_CONFIG_PATH), 'r') as f:
         config = DotMap(yaml.safe_load(f))
@@ -49,13 +60,7 @@ def load_current_kube_credentials():
     if 'certificate-authority' in cluster:
         ca_cert = cluster['certificate-authority']
     elif 'certificate-authority-data' in cluster:
-        temp_handle, temp_path = tempfile.mkstemp('k8s-cert', text=True)
-        with os.fdopen(temp_handle, 'wb') as fout:
-            fout.write(base64.b64decode(cluster['certificate-authority-data']))
-            fout.close()
-
-        TEMP_CERTS.append(temp_path)
-        ca_cert = temp_path
+        ca_cert = write_temp_cert(cluster['certificate-authority-data'])
     else:
         ca_cert = None
 
@@ -64,7 +69,17 @@ def load_current_kube_credentials():
         if 'token' in user:
             return cluster.server, ca_cert, None, user['token']
         else:
-            return cluster.server, ca_cert, (user['client-certificate'], user['client-key']), None
+            if 'client-certificate-data' in user:
+                client_cert = write_temp_cert(user['client-certificate-data'])
+            else:
+                client_cert = user['client-certificate']
+
+            if 'client-key-data' in user:
+                client_key = write_temp_cert(user['client-key-data'])
+            else:
+                client_key = user['client-key']
+
+            return cluster.server, ca_cert, (client_cert, client_key), None
     else:
         return cluster.server, ca_cert, None
 
@@ -72,6 +87,7 @@ def load_current_kube_credentials():
 def cleanup_temp_certs():
     for cert in TEMP_CERTS:
         os.unlink(cert)
+
 
 atexit.register(cleanup_temp_certs)
 
@@ -107,6 +123,7 @@ class KubernetesAPIClient(object):
     def __init__(self, verify=True):
         self.session = requests.Session()
         self.session.verify = verify
+
         self.api_url = None
 
     def load_cluster_config(self):
@@ -124,6 +141,7 @@ class KubernetesAPIClient(object):
 
     def load_kube_config(self):
         server, ca_cert, cert, token = load_current_kube_credentials()
+
         self.api_url = server.rstrip('/')
         self.session.verify = ca_cert
 
@@ -201,3 +219,10 @@ class KubernetesAPIClient(object):
                                      'PATCH, failing!')
 
         return resp
+
+    @classmethod
+    def from_auto_config(cls, **kwargs):
+        c = KubernetesAPIClient(**kwargs)
+        c.load_auto_config()
+
+        return c
